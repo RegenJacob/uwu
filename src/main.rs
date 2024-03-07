@@ -1,6 +1,6 @@
 use uwuifier::uwuify;
 
-use clap::{App, Arg, ArgMatches};
+use clap::{Arg, ArgMatches, Command};
 
 use parking_lot::Mutex;
 
@@ -23,7 +23,7 @@ mod error;
 use error::{Error, Result};
 
 fn main() {
-    let matches = App::new("uwu")
+    let matches = Command::new("uwu")
         .about("fastest text uwuifier in the west")
         .arg(
             Arg::new("INPUT")
@@ -43,7 +43,7 @@ fn main() {
                 .short('t')
                 .long("threads")
                 .value_name("THREADS")
-                .takes_value(true)
+                .num_args(1..)
                 .default_value("1"),
         )
         .arg(
@@ -64,9 +64,12 @@ fn main() {
 }
 
 fn main_inner(matches: ArgMatches) -> Result<()> {
-    let in_path = matches.value_of("INPUT").unwrap();
-    let out_path = matches.value_of("OUTPUT").unwrap();
-    let thread_count = matches.value_of("threads").unwrap().parse::<usize>()?;
+    let in_path = matches.get_one::<String>("INPUT").unwrap();
+    let out_path = matches.get_one::<String>("OUTPUT").unwrap();
+    let thread_count = matches
+        .get_one::<String>("threads")
+        .unwrap()
+        .parse::<usize>()?;
 
     let reader: Box<dyn Read + Send> = if in_path == "-" {
         Box::new(io::stdin())
@@ -84,7 +87,7 @@ fn main_inner(matches: ArgMatches) -> Result<()> {
     let (input_size, output_size) = parallel_uwu(reader, writer, thread_count);
     let duration = start_time.elapsed();
 
-    if matches.is_present("verbose") {
+    if matches.get_flag("verbose") {
         eprintln!("time taken: {} ms", duration.as_millis());
         eprintln!("input size: {} bytes", input_size);
         eprintln!("output size: {} bytes", output_size);
